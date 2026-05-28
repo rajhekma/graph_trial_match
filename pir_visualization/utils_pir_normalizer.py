@@ -1,4 +1,27 @@
 import json
+import re
+
+# Cap patients drawn per graph response (large trials can match 10k+ patients)
+MAX_GRAPH_PATIENTS = 200
+_NEO4J_LABEL_SAFE = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
+
+
+def ensure_graph_fields(row: dict) -> dict:
+    """Fill graph fields when pred_list was stored empty in MySQL."""
+    ci = row.get("criteria_index", 0)
+    text = (row.get("criteria_text") or "").strip() or f"Criterion {ci}"
+    row["display_label"] = text[:120]
+
+    if not row.get("matched_node_id"):
+        row["matched_node_id"] = f"criterion_{ci}"
+
+    # matched_label must be a Neo4j node label (Condition), not criteria prose
+    ml = str(row.get("matched_label") or "").strip()
+    if not ml or not _NEO4J_LABEL_SAFE.match(ml):
+        row["matched_label"] = "Condition"
+
+    return row
+
 
 def normalize_patient_rows(rows):
     norm = []
@@ -48,6 +71,7 @@ def normalize_patient_rows(rows):
             except Exception:
                 pred_list = []
 
+        added = False
         for p in pred_list:
             mid = p.get("matched_node_id")
             lab = p.get("matched_label")
@@ -59,6 +83,15 @@ def normalize_patient_rows(rows):
                 **base,
                 "matched_label": lab,
                 "matched_node_id": mid,
+            })
+            added = True
+
+        # Keep criterion row for UI even when pred_list is empty or has no graph nodes
+        if not added:
+            norm.append({
+                **base,
+                "matched_label": None,
+                "matched_node_id": None,
             })
 
     return norm

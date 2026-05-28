@@ -1,0 +1,139 @@
+{
+  "project": "graph_trial_match",
+  "base_url": "http://127.0.0.1:8000",
+  "client_mode": "testclient",
+  "nct_id": "NCT_QA_E2E",
+  "started_at": "2026-05-28T17:55:40.749604+00:00",
+  "finished_at": "2026-05-28T17:55:40.749604+00:00",
+  "summary": {
+    "total": 11,
+    "passed": 0,
+    "failed": 11,
+    "skipped": 0,
+    "pending": 0,
+    "overall": "FAIL"
+  },
+  "cases": [
+    {
+      "id": "TC-01",
+      "name": "Root health",
+      "method": "GET",
+      "path": "/health",
+      "status": "FAIL",
+      "duration_ms": 0,
+      "error": "TypeError: tc01_health() missing 1 required positional argument: 'case'",
+      "notes": null,
+      "response_preview": null
+    },
+    {
+      "id": "TC-02",
+      "name": "PIR health",
+      "method": "GET",
+      "path": "/api/health",
+      "status": "FAIL",
+      "duration_ms": 0,
+      "error": "TypeError: tc02_pir_health() missing 1 required positional argument: 'case'",
+      "notes": null,
+      "response_preview": null
+    },
+    {
+      "id": "TC-03",
+      "name": "Generate JSON (arrays)",
+      "method": "POST",
+      "path": "/generate_json",
+      "status": "FAIL",
+      "duration_ms": 0,
+      "error": "TypeError: tc03_generate_json_arrays() missing 1 required positional argument: 'case'",
+      "notes": null,
+      "response_preview": null
+    },
+    {
+      "id": "TC-04",
+      "name": "Test engine full run",
+      "method": "POST",
+      "path": "/test_engine",
+      "status": "FAIL",
+      "duration_ms": 0,
+      "error": "TypeError: tc04_test_engine_full() missing 1 required positional argument: 'case'",
+      "notes": null,
+      "response_preview": null
+    },
+    {
+      "id": "TC-05",
+      "name": "Test engine pagination",
+      "method": "POST",
+      "path": "/test_engine?page=0",
+      "status": "FAIL",
+      "duration_ms": 0,
+      "error": "TypeError: tc05_test_engine_pagination() missing 1 required positional argument: 'case'",
+      "notes": null,
+      "response_preview": null
+    },
+    {
+      "id": "TC-06",
+      "name": "PIR results",
+      "method": "GET",
+      "path": "/api/nct/NCT_QA_E2E/results",
+      "status": "FAIL",
+      "duration_ms": 0,
+      "error": "TypeError: tc06_pir_results() missing 1 required positional argument: 'case'",
+      "notes": null,
+      "response_preview": null
+    },
+    {
+      "id": "TC-07",
+      "name": "All inclusions graph",
+      "method": "GET",
+      "path": "/api/nct/NCT_QA_E2E/all_inclusions",
+      "status": "FAIL",
+      "duration_ms": 0,
+      "error": "TypeError: tc07_all_inclusions() missing 1 required positional argument: 'case'",
+      "notes": null,
+      "response_preview": null
+    },
+    {
+      "id": "TC-08",
+      "name": "All exclusions graph",
+      "method": "GET",
+      "path": "/api/nct/NCT_QA_E2E/all_exclusions",
+      "status": "FAIL",
+      "duration_ms": 0,
+      "error": "TypeError: tc08_all_exclusions() missing 1 required positional argument: 'case'",
+      "notes": null,
+      "response_preview": null
+    },
+    {
+      "id": "TC-09",
+      "name": "Single inclusion cluster",
+      "method": "GET",
+      "path": "/api/nct/NCT_QA_E2E/inclusion/0",
+      "status": "FAIL",
+      "duration_ms": 0,
+      "error": "TypeError: tc09_single_inclusion() missing 1 required positional argument: 'case'",
+      "notes": null,
+      "response_preview": null
+    },
+    {
+      "id": "TC-10",
+      "name": "Single exclusion cluster",
+      "method": "GET",
+      "path": "/api/nct/NCT_QA_E2E/exclusion/0",
+      "status": "FAIL",
+      "duration_ms": 0,
+      "error": "TypeError: tc10_single_exclusion() missing 1 required positional argument: 'case'",
+      "notes": null,
+      "response_preview": null
+    },
+    {
+      "id": "TC-11",
+      "name": "Expand nodes",
+      "method": "POST",
+      "path": "/api/expand/nodes",
+      "status": "FAIL",
+      "duration_ms": 0,
+      "error": "TypeError: tc11_expand_nodes() missing 1 required positional argument: 'case'",
+      "notes": null,
+      "response_preview": null
+    }
+  ]
+}

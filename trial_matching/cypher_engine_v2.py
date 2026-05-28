@@ -1699,8 +1699,8 @@ class JsonToCypherRunnerV2:
         # ---------------------------
         # Step 1: Run all inclusion criteria independently
         # ---------------------------
-        for crit in inc_list:
-            cid = int(crit.get("id"))
+        for idx, crit in enumerate(inc_list):
+            cid = int(crit.get("id", idx))
             criteria_text = (crit.get("description") or crit.get("text") or crit.get("criterion") or "").strip()
             logger.info(
                 f"Processing inclusion criterion {cid}: {crit.get('description')}"
@@ -1711,7 +1711,13 @@ class JsonToCypherRunnerV2:
                 per_criterion_matches[cid] = set(matched_ids)
                 patient_detail_map.update(patient_map)
                 for pid in matched_ids:
-                    info = patient_map.get(pid, {})
+                    info = patient_map.get(pid, {}) or {}
+                    mid = info.get("matched_node_id") or info.get("code")
+                    lab = info.get("matched_label") or "Condition"
+                    if not mid:
+                        mid = f"criterion_{cid}"
+                    if criteria_text and (not lab or lab == "Condition"):
+                        lab = criteria_text[:120]
 
                     patient_match_records.append(
                         {
@@ -1721,14 +1727,13 @@ class JsonToCypherRunnerV2:
                             "criteria_index": cid,
                             "model_pred": 1,
                             "criteria_text": criteria_text,
-
                             "pred_list": [
                                 {
-                                    "matched_label": info.get("matched_label"),
-                                    "matched_node_id": info.get("matched_node_id"),
-                                    "criteria_index": cid
+                                    "matched_label": lab,
+                                    "matched_node_id": str(mid),
+                                    "criteria_index": cid,
                                 }
-                            ]
+                            ],
                         }
                     )
 
@@ -1746,8 +1751,8 @@ class JsonToCypherRunnerV2:
         # ---------------------------
         if inclusion_union:
             logger.info("Starting exclusion criteria (filtered on inclusion hits)...")
-            for crit in exc_list:
-                cid = int(crit.get("id", -1))
+            for idx, crit in enumerate(exc_list):
+                cid = int(crit.get("id", idx))
                 criteria_text = (crit.get("description") or crit.get("text") or crit.get("criterion") or "").strip()
                 logger.info(
                     f"Processing exclusion criterion {cid}: {crit.get('description')}"
@@ -1758,7 +1763,13 @@ class JsonToCypherRunnerV2:
                     )
                     exclusion_map[cid] = set(matched_ids)
                     for pid in matched_ids:
-                        info = patient_map.get(pid, {})
+                        info = patient_detail_map.get(pid, {}) or {}
+                        mid = info.get("matched_node_id") or info.get("code")
+                        lab = info.get("matched_label") or "Condition"
+                        if not mid:
+                            mid = f"criterion_{cid}"
+                        if criteria_text and (not lab or lab == "Condition"):
+                            lab = criteria_text[:120]
 
                         patient_match_records.append(
                             {
@@ -1768,14 +1779,13 @@ class JsonToCypherRunnerV2:
                                 "criteria_index": cid,
                                 "model_pred": 1,
                                 "criteria_text": criteria_text,
-
                                 "pred_list": [
                                     {
-                                        "matched_label": info.get("matched_label"),
-                                        "matched_node_id": info.get("matched_node_id"),
-                                        "criteria_index": cid
+                                        "matched_label": lab,
+                                        "matched_node_id": str(mid),
+                                        "criteria_index": cid,
                                     }
-                                ]
+                                ],
                             }
                         )
                     logger.info(
@@ -1788,8 +1798,8 @@ class JsonToCypherRunnerV2:
                     exclusion_map[cid] = set()
         else:
             logger.info("No inclusion matches found — skipping exclusions.")
-            for crit in exc_list:
-                exclusion_map[int(crit.get("id", -1))] = set()
+            for idx, crit in enumerate(exc_list):
+                exclusion_map[int(crit.get("id", idx))] = set()
         # ---------------------------
         # Step 3: Aggregate scoring & buckets (Dynamic % version)
         # ---------------------------
@@ -2230,5 +2240,24 @@ class JsonToCypherRunnerV2:
                                 cobj["visit_window"] = ",".join(sorted({str(v) for v in vws if v}))
                     # write back
                     crit["categories"][cname] = cobj
+        def _ensure_criterion_ids(lst):
+            if not isinstance(lst, list):
+                return lst
+            for i, crit in enumerate(lst):
+                if not isinstance(crit, dict):
+                    continue
+                if crit.get("id") is None:
+                    crit["id"] = i
+            return lst
+
+        for list_key in (
+            "inclusion_criteria",
+            "inclusion",
+            "exclusion_criteria",
+            "exclusion",
+        ):
+            if list_key in normalized:
+                normalized[list_key] = _ensure_criterion_ids(normalized[list_key])
+
         logger.info("LLM structure normalized successfully")
         return normalized

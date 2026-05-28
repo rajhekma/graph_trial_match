@@ -1,0 +1,367 @@
+{
+  "info": {
+    "_postman_id": "graph-trial-match-api",
+    "name": "Graph Trial Match API",
+    "description": "All endpoints for graph_trial_match (trial_matching + pir_visualization).\n\n**Recommended test order**\n1. GET /health, GET /api/health\n2. POST /generate_json (pick one variant)\n3. POST /test_engine (paste JSON from step 2, or use sample body)\n4. GET /api/nct/{nct_id}/* (requires step 3 + MySQL)\n5. POST /generate_and_run (optional one-shot; skips detailed pagination)\n\n**Variables:** `baseUrl` (default http://127.0.0.1:8000), `nctId` (default NCT05545020)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8000"
+    },
+    {
+      "key": "nctId",
+      "value": "NCT05545020"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Health",
+      "item": [
+        {
+          "name": "Root Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Checks API is up and Neo4j runner initialized.\n\nExpected: `{ \"status\": \"ok\", \"neo4j_runner\": true }`"
+          },
+          "response": []
+        },
+        {
+          "name": "PIR Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            },
+            "description": "PIR visualization module health.\n\nExpected: `{ \"status\": \"ok\" }`"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02 - Trial Matching (generate JSON)",
+      "item": [
+        {
+          "name": "Generate JSON - NCT Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nctCode\": \"{{nctId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/generate_json",
+              "host": ["{{baseUrl}}"],
+              "path": ["generate_json"]
+            },
+            "description": "Fetches criteria via EXTRACTOR_API_URL then LLM → structured JSON.\n\nRequires: OPENAI_API_KEY, EXTRACTOR_API_URL in .env"
+          },
+          "response": []
+        },
+        {
+          "name": "Generate JSON - Inclusion/Exclusion Arrays",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nct_id\": \"{{nctId}}\",\n  \"inclusion\": [\n    \"Adults aged 18 to 75 years\",\n    \"Diagnosis of Type 2 diabetes mellitus\"\n  ],\n  \"exclusion\": [\n    \"Pregnant or breastfeeding\",\n    \"History of severe hypoglycemia\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/generate_json",
+              "host": ["{{baseUrl}}"],
+              "path": ["generate_json"]
+            },
+            "description": "Direct criteria arrays → LLM structured JSON (no extractor API)."
+          },
+          "response": []
+        },
+        {
+          "name": "Generate JSON - Free Text",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_input\": \"Include adults with Type 2 diabetes on metformin. Exclude pregnancy and severe kidney disease.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/generate_json",
+              "host": ["{{baseUrl}}"],
+              "path": ["generate_json"]
+            },
+            "description": "Free-text eligibility → LLM structured JSON."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03 - Trial Matching (Neo4j engine)",
+      "item": [
+        {
+          "name": "Test Engine - Full Run (writes MySQL)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nct_id\": \"{{nctId}}\",\n  \"inclusion_criteria\": [\n    {\n      \"category\": \"demographics\",\n      \"logic\": \"AND\",\n      \"original_text\": \"Adults aged 18 to 75 years\",\n      \"age_min\": 18,\n      \"age_max\": 75\n    },\n    {\n      \"category\": \"condition\",\n      \"logic\": \"AND\",\n      \"original_text\": \"Type 2 diabetes mellitus\",\n      \"codes\": [\n        {\n          \"system\": \"SNOMED\",\n          \"code\": \"44054006\",\n          \"display\": \"Type 2 diabetes mellitus\"\n        }\n      ]\n    }\n  ],\n  \"exclusion_criteria\": [\n    {\n      \"category\": \"condition\",\n      \"logic\": \"OR\",\n      \"original_text\": \"Pregnancy\",\n      \"codes\": [\n        {\n          \"system\": \"SNOMED\",\n          \"code\": \"77386006\",\n          \"display\": \"Pregnancy\"\n        }\n      ]\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/test_engine",
+              "host": ["{{baseUrl}}"],
+              "path": ["test_engine"]
+            },
+            "description": "Full Neo4j matching + writes model_prediction_pir and patient_match_pir.\n\n**Important:** Paste the **entire JSON response** from POST /generate_json as the body (do not use a hand-written sample). Each criterion must have `id`, `description`, and `categories` from the LLM.\n\nRequires: Neo4j + MySQL configured."
+          },
+          "response": []
+        },
+        {
+          "name": "Test Engine - Pagination Only (page=0)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nct_id\": \"{{nctId}}\",\n  \"inclusion_criteria\": [],\n  \"exclusion_criteria\": []\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/test_engine?page=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["test_engine"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "Reads patients from MySQL only (no Neo4j re-run). Run after a full /test_engine.\n\nChange `page` query param: 0, 1, 2, ..."
+          },
+          "response": []
+        },
+        {
+          "name": "Test Engine - Pagination Only (page=1)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nct_id\": \"{{nctId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/test_engine?page=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["test_engine"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Second page of paginated patients from MySQL."
+          },
+          "response": []
+        },
+        {
+          "name": "Generate and Run (one-shot)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nctCode\": \"{{nctId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/generate_and_run",
+              "host": ["{{baseUrl}}"],
+              "path": ["generate_and_run"]
+            },
+            "description": "Chains /generate_json + Neo4j run. Returns counts and final_patients (does not use MySQL pagination flow like /test_engine)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "04 - PIR Visualization (after test_engine)",
+      "item": [
+        {
+          "name": "NCT Results (top match bucket)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/nct/{{nctId}}/results",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "nct", "{{nctId}}", "results"]
+            },
+            "description": "Patients in the highest match_percent bucket.\n\nRequires prior POST /test_engine for same nct_id."
+          },
+          "response": []
+        },
+        {
+          "name": "All Inclusions Graph",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/nct/{{nctId}}/all_inclusions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "nct", "{{nctId}}", "all_inclusions"]
+            },
+            "description": "Multi-ring inclusion graph: concept nodes + patient nodes + edges."
+          },
+          "response": []
+        },
+        {
+          "name": "All Exclusions Graph",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/nct/{{nctId}}/all_exclusions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "nct", "{{nctId}}", "all_exclusions"]
+            },
+            "description": "Multi-ring exclusion graph (edge type: excluded)."
+          },
+          "response": []
+        },
+        {
+          "name": "Single Inclusion Cluster (criteria_index=0)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/nct/{{nctId}}/inclusion/0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "nct", "{{nctId}}", "inclusion", "0"]
+            },
+            "description": "One inclusion criterion: labels, Neo4j expansions, matching patients.\n\nChange last path segment for other criteria_index values."
+          },
+          "response": []
+        },
+        {
+          "name": "Single Exclusion Cluster (criteria_index=0)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/nct/{{nctId}}/exclusion/0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "nct", "{{nctId}}", "exclusion", "0"]
+            },
+            "description": "One exclusion criterion cluster.\n\nmode must be `inclusion` or `exclusion`."
+          },
+          "response": []
+        },
+        {
+          "name": "Expand Nodes (Neo4j properties)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"id\": \"REPLACE_WITH_MATCHED_NODE_ID\",\n      \"label\": \"Condition\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/expand/nodes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "expand", "nodes"]
+            },
+            "description": "Expand Neo4j node properties for matched concepts.\n\nReplace `id` and `label` with values from /all_inclusions or single-cluster responses."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "05 - Swagger (browser)",
+      "item": [
+        {
+          "name": "OpenAPI Docs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/docs",
+              "host": ["{{baseUrl}}"],
+              "path": ["docs"]
+            },
+            "description": "Interactive Swagger UI — open in browser."
+          },
+          "response": []
+        },
+        {
+          "name": "OpenAPI JSON",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/openapi.json",
+              "host": ["{{baseUrl}}"],
+              "path": ["openapi.json"]
+            },
+            "description": "Raw OpenAPI schema."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

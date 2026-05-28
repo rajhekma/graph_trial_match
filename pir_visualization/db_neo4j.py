@@ -189,7 +189,11 @@ def expand_labels_get_props(label_requests, chunk_size: int = 500):
 
     # Also log a small sample of final centers for inspection
     try:
-        sample = [{"id": f.get("center",{}).get("id"), "props_keys": list(f.get("center",{}).get("props",{}).keys())[:8]} for f in final[:8]]
+        sample = []
+        for f in final[:8]:
+            center = f.get("center") or {}
+            props = center.get("props") or {}
+            sample.append({"id": center.get("id"), "props_keys": list(props.keys())[:8]})
         logger.info("expand_labels_get_props() sample: %s", sample)
     except Exception:
         logger.exception("Failed to build expansion sample log")
