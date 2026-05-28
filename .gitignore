@@ -1,0 +1,9 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.env
+.idea/
+.vscode/
+*.log
+benchmark_results.json
