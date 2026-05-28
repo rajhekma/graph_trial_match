@@ -1,9 +1,9 @@
 import logging
 from fastapi import APIRouter, HTTPException
 
-from CLINICALKG.db_mysql import fetch_patient_match_rows
-from CLINICALKG.utils_pir_normalizer import normalize_patient_rows
-from CLINICALKG.db_neo4j import expand_labels_get_props
+from pir_visualization.db_mysql import fetch_patient_match_rows
+from pir_visualization.utils_pir_normalizer import normalize_patient_rows
+from pir_visualization.db_neo4j import expand_labels_get_props
 
 logger = logging.getLogger("pir-api")
 

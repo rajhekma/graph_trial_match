@@ -2,7 +2,7 @@
 
 Clinical trial **patient matching** backend: convert eligibility criteria to structured rules (LLM), find matching patients in Neo4j, store results in MySQL, and visualize matches (PIR graphs).
 
-Extracted from `hekma_data_pipleline` — includes **LLMTOJSON** and **CLINICALKG** only (no `disease_analysis`).
+Extracted from `hekma_data_pipleline` — includes **trial_matching** and **pir_visualization** only (no `disease_analysis`).
 
 Related repos:
 
@@ -27,7 +27,7 @@ python -m uvicorn app:app --reload --host 127.0.0.1 --port 8000
 ## Pipeline
 
 ```
-NCT / criteria text → LLMTOJSON → Neo4j match → MySQL → CLINICALKG graphs
+NCT / criteria text → trial_matching → Neo4j match → MySQL → pir_visualization graphs
 ```
 
 ## Documentation
@@ -39,8 +39,8 @@ See [TRIAL_MATCH_DOCUMENTATION.md](./TRIAL_MATCH_DOCUMENTATION.md) for full API 
 ```
 graph_trial_match/
 ├── app.py                 # FastAPI entry point
-├── LLMTOJSON/              # LLM + Neo4j matching engine
-├── CLINICALKG/             # PIR visualization APIs
+├── trial_matching/         # LLM criteria parser + Neo4j matching engine
+├── pir_visualization/      # PIR results graph APIs
 ├── db_writer.py            # MySQL read/write for match results
 ├── requirements.txt
 └── TRIAL_MATCH_DOCUMENTATION.md

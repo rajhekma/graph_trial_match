@@ -10,7 +10,7 @@ from openai import OpenAI
 # ---------- Setup ----------
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("LLMTOJSON_v3")
+logger = logging.getLogger("trial_matching.json_generator")
 
 # environment-based configuration (sensible defaults)
 MAX_TOKENS_CATEGORY = int(os.getenv("MAX_TOKENS_CATEGORY", "6000"))

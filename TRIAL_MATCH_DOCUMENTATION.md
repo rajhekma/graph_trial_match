@@ -8,11 +8,11 @@ Clinical trial patient-matching backend. Takes trial eligibility criteria (inclu
 
 ## What This App Contains
 
-| Module | Role | In this repo? |
+| Package | Former name | Role |
 |---|---|---|
-| **LLMTOJSON** | Criteria → JSON (LLM) + Neo4j matching | Yes |
-| **CLINICALKG** | Visualize match results from MySQL | Yes |
-| **disease_analysis** | General FHIR graph explorer | No — see [graph-db-service](https://github.com/rajhekma/graph-db-service) |
+| **trial_matching** | `LLMTOJSON` | Criteria → JSON (LLM) + Neo4j patient matching |
+| **pir_visualization** | `CLINICALKG` | Visualize match results from MySQL + Neo4j |
+| **disease_analysis** | — | General FHIR graph explorer — see [graph-db-service](https://github.com/rajhekma/graph-db-service) |
 
 ---
 
@@ -20,24 +20,24 @@ Clinical trial patient-matching backend. Takes trial eligibility criteria (inclu
 
 ```mermaid
 flowchart LR
-    A[Trial criteria / NCT ID] --> B[LLMTOJSON]
+    A[Trial criteria / NCT ID] --> B[trial_matching]
     B --> C[Structured JSON]
     C --> D[Neo4j matching]
     D --> E[MySQL]
-    E --> F[CLINICALKG APIs]
+    E --> F[pir_visualization APIs]
 ```
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                     app.py (FastAPI)                        │
 ├─────────────────────────────────────────────────────────────┤
-│  LLMTOJSON                                                  │
+│  trial_matching                                                  │
 │  ├── json_generator.py     criteria → JSON via OpenAI         │
 │  └── cypher_engine_v2.py   JSON → Neo4j → matched patients  │
 │                                                             │
 │  db_writer.py              MySQL insert + pagination        │
 │                                                             │
-│  CLINICALKG                                                 │
+│  pir_visualization                                                 │
 │  ├── pir_router.py         PIR graph API routes             │
 │  ├── db_mysql.py           Read model_prediction_pir        │
 │  ├── db_neo4j.py           Expand node properties           │
@@ -101,11 +101,11 @@ python -m uvicorn app:app --reload --host 127.0.0.1 --port 8000
 sequenceDiagram
     participant Client
     participant API as app.py
-    participant LLM as LLMTOJSON
+    participant LLM as trial_matching
     participant Ext as Extractor API
     participant Neo4j
     participant MySQL
-    participant PIR as CLINICALKG
+    participant PIR as pir_visualization
 
     Client->>API: POST /generate_json { nctCode }
     API->>Ext: GET criteria by NCT
@@ -129,9 +129,9 @@ sequenceDiagram
 
 ---
 
-# Part 1 — LLMTOJSON APIs
+# Part 1 — trial_matching APIs
 
-Implemented in `app.py` using `LLMTOJSON/json_generator.py` and `LLMTOJSON/cypher_engine_v2.py`.
+Implemented in `app.py` using `trial_matching/json_generator.py` and `trial_matching/cypher_engine_v2.py`.
 
 ---
 
@@ -284,9 +284,9 @@ curl -X POST http://127.0.0.1:8000/generate_and_run `
 
 ---
 
-# Part 2 — CLINICALKG APIs
+# Part 2 — pir_visualization APIs
 
-Implemented in `CLINICALKG/pir_router.py`, mounted at `/api` prefix.
+Implemented in `pir_visualization/pir_router.py`, mounted at `/api` prefix.
 
 **Requires:** Prior `/test_engine` run for the same `nct_id` (data in MySQL).
 
@@ -407,7 +407,7 @@ RETURN u AS uuid, apoc.convert.toMap(n) AS node
 
 ## MySQL tables
 
-### `model_prediction_pir` (written by `db_writer`, read by CLINICALKG)
+### `model_prediction_pir` (written by `db_writer`, read by pir_visualization)
 
 | Column | Purpose |
 |---|---|
@@ -432,15 +432,15 @@ RETURN u AS uuid, apoc.convert.toMap(n) AS node
 
 | File | Module | Description |
 |---|---|---|
-| `app.py` | Entry | FastAPI routes for LLMTOJSON |
-| `LLMTOJSON/json_generator.py` | LLMTOJSON | OpenAI classify + expand |
-| `LLMTOJSON/cypher_engine_v2.py` | LLMTOJSON | Neo4j matching engine |
-| `LLMTOJSON/cypher_generator.py` | LLMTOJSON | Legacy Cypher helper |
+| `app.py` | Entry | FastAPI routes for trial_matching |
+| `trial_matching/json_generator.py` | trial_matching | OpenAI classify + expand |
+| `trial_matching/cypher_engine_v2.py` | trial_matching | Neo4j matching engine |
+| `trial_matching/cypher_generator.py` | trial_matching | Legacy Cypher helper |
 | `db_writer.py` | Shared | MySQL insert + pagination |
-| `CLINICALKG/pir_router.py` | CLINICALKG | Visualization routes |
-| `CLINICALKG/db_mysql.py` | CLINICALKG | MySQL reads |
-| `CLINICALKG/db_neo4j.py` | CLINICALKG | Neo4j node expansion |
-| `CLINICALKG/utils_pir_normalizer.py` | CLINICALKG | Row normalization |
+| `pir_visualization/pir_router.py` | pir_visualization | Visualization routes |
+| `pir_visualization/db_mysql.py` | pir_visualization | MySQL reads |
+| `pir_visualization/db_neo4j.py` | pir_visualization | Neo4j node expansion |
+| `pir_visualization/utils_pir_normalizer.py` | pir_visualization | Row normalization |
 
 ---
 

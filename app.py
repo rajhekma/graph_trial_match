@@ -1,5 +1,5 @@
 """
-Graph Trial Match API — LLMTOJSON + CLINICALKG only.
+Graph Trial Match API.
 
 Trial criteria -> structured JSON -> Neo4j patient matching -> MySQL -> PIR visualization.
 """
@@ -15,10 +15,10 @@ from dotenv import load_dotenv
 from starlette.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 
-from LLMTOJSON.json_generator import generate_json_from_criteria_v2
-from LLMTOJSON.cypher_engine_v2 import JsonToCypherRunnerV2
+from trial_matching.json_generator import generate_json_from_criteria_v2
+from trial_matching.cypher_engine_v2 import JsonToCypherRunnerV2
 from db_writer import insert_patient_matches, insert_model_predictions, fetch_paginated_patients
-from CLINICALKG.pir_router import router as pir_Viz_router
+from pir_visualization.pir_router import router as pir_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -224,7 +224,7 @@ async def generate_and_run_endpoint(body: dict = Body(...)):
         raise HTTPException(status_code=500, detail=f"Combined execution failed: {str(e)}")
 
 
-app.include_router(pir_Viz_router, prefix="/api", tags=["PIR_VISUALISATION"])
+app.include_router(pir_router, prefix="/api", tags=["PIR_VISUALISATION"])
 
 
 @app.on_event("shutdown")

@@ -9,7 +9,7 @@ from dateutil import parser as _dt_parser
 from datetime import datetime as _dt
 import re
 # ---------- Setup ----------
-logger = logging.getLogger("json_to_cypher_v2")
+logger = logging.getLogger("trial_matching.cypher_engine")
 logging.basicConfig(level=logging.INFO)
 NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
